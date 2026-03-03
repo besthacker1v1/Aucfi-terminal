@@ -57,18 +57,22 @@
 .toast-msg {
     background: rgba(153, 50, 255, 0.9); /* Solana Purple */
     color: white;
-    padding: 12px 24px;
-    border-radius: 50px;
+    padding: 16px 24px;
+    border-radius: 8px;
     font-size: 14px;
-    font-weight: bold;
-    border: 1px solid rgba(255,255,255,0.2);
-    box-shadow: 0 0 20px rgba(153, 50, 255, 0.4);
-    margin-top: 10px;
-    animation: popUp 0.4s ease-out forwards;
+    font-weight: 600;
+    border-left: 4px solid #9945FF;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    margin-bottom: 10px;
+    animation: slidein 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    backdrop-filter: blur(10px);
 }
-@keyframes popUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+
+.toast-msg.error { border-left-color: #FF4B4B; }
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(100px); }
+    to { opacity: 1; transform: translateX(0); }
 }
   </style>
 </head>
@@ -188,7 +192,7 @@
     async function connectWallet() {
         try {
             if (!window.solana || !window.solana.isPhantom) {
-                return alert("Please install Phantom Wallet to bid!");
+                return showToast("Please install Phantom Wallet to bid!");
             }
 
             // Connect to Phantom
@@ -203,17 +207,17 @@
             };
             localStorage.setItem('aucfi_user', JSON.stringify(userData));
             
-            alert(`✅ Connected: ${walletAddr.substring(0, 4)}...${walletAddr.substring(38)}`);
+            showToast(`✅ Connected: ${walletAddr.substring(0, 4)}...${walletAddr.substring(38)}`);
             location.reload();
         } catch (err) {
             console.error("Wallet connection failed", err);
-            alert("Connection Cancelled");
+            showToast("Connection Cancelled");
         }
     }
 
     function logout() {
         localStorage.removeItem('aucfi_user');
-        alert("Wallet Disconnected");
+        showToast("Wallet Disconnected");
         location.reload();
     }
 
@@ -224,7 +228,7 @@
         const user = JSON.parse(localStorage.getItem('aucfi_user'));
         
         if (!user || user.role !== 'bidder') {
-            return alert("❌ ACCESS DENIED: Please connect your Phantom Wallet to bid.");
+            return showToast("❌ ACCESS DENIED: Please connect your Phantom Wallet to bid.");
         }
 
         // Get value from input; default to 65 if not found
@@ -245,14 +249,14 @@
             const result = await response.json();
 
             if (result.success) {
-                alert(`🚀 BACKEND VERIFIED: ${result.message}`);
+                showToast(`🚀 BACKEND VERIFIED: ${result.message}`);
                 if($('#rvAmount')) $('#rvAmount').innerText = bidValue;
             } else {
-                alert(`⚠️ BID REJECTED: ${result.message}`);
+                showToast(`⚠️ BID REJECTED: ${result.message}`);
             }
         } catch (err) {
             console.error("Connection Error:", err);
-            alert("Backend Offline. Start your server on the Chromebook terminal!");
+            showToast("Backend Offline. Start your server on the Chromebook terminal!");
         }
     }
 
@@ -350,21 +354,27 @@
         }
     }
 
-  function showToast(text) {
+    function showToast(text, type = 'Success') {
     let box = $('#toast-box');
     if(!box) {
         document.body.insertAdjacentHTML('beforeend', '<div id="toast-box"></div>');
         box = $('#toast-box');
     }
     const id = Date.now();
-    const html = `<div id="t-${id}" class="toast-msg">${text}</div>`;
+    const isError = type === 'error' ? 'error' : '';
+    const html = `<div id="t-${id}" class="toast-msg ${isError}">${text}</div>`;
+
     box.insertAdjacentHTML('beforeend', html);
     
     // Auto-destruct
     setTimeout(() => {
         const el = document.getElementById(`t-${id}`);
-        if(el) el.remove();
-    }, 3500);
+        if(el) {
+            el.style.opacity = '0';
+            el.style.transform = 'translateX(20px)'
+            setTimeout(() => el.remove(), 300);
+        }
+    }, 4000);
 }
 
 // NOW REPLACE: alert("Success") WITH showToast("🚀 Bid Placed Successfully!")
