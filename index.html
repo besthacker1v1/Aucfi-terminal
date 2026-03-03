@@ -74,6 +74,30 @@
     from { opacity: 0; transform: translateX(100px); }
     to { opacity: 1; transform: translateX(0); }
 }
+
+/* Spinner Animation */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+/* Disabled state for button while loading */
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    filter: grayscale(1);
+}
   </style>
 </head>
 <body class="mesh-bg min-h-screen">
@@ -225,6 +249,46 @@
        STEP 2: DYNAMIC BIDDING LOGIC
        ========================================== */
     async function confirmBid(lotTitle = "Unknown Item") {
+    const user = JSON.parse(localStorage.getItem('aucfi_user'));
+    const bidBtn = event.target; // Capture the button that was clicked
+    const originalText = bidBtn.innerHTML;
+
+    if (!user || user.role !== 'bidder') {
+        return showToast("❌ Connect Wallet to Bid", "error");
+    }
+
+    // --- START LOADING STATE ---
+    bidBtn.disabled = true;
+    bidBtn.innerHTML = `<span class="spinner"></span> VERIFYING...`;
+
+    try {
+        const bidValue = $('#bidInput') ? $('#bidInput').value : 65;
+
+        const response = await fetch(`${API_BASE_URL}/api/validate-bid`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                walletAddress: user.wallet, 
+                bidAmountSol: parseFloat(bidValue),
+                item: lotTitle
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showToast(`🚀 ${result.message}`);
+        } else {
+            showToast(`⚠️ ${result.message}`, "error");
+        }
+    } catch (err) {
+        showToast("Backend Connection Failed", "error");
+    } finally {
+        // --- END LOADING STATE ---
+        bidBtn.disabled = false;
+        bidBtn.innerHTML = originalText;
+    }
+}
         const user = JSON.parse(localStorage.getItem('aucfi_user'));
         
         if (!user || user.role !== 'bidder') {
@@ -258,7 +322,6 @@
             console.error("Connection Error:", err);
             showToast("Backend Offline. Start your server on the Chromebook terminal!");
         }
-    }
 
     /* ==========================================
        STEP 3: MARKET DATA (429 Protected)
