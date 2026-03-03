@@ -168,6 +168,71 @@
 
         </div>
 
+        <div id="bidModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-6">
+    <div class="absolute inset-0 bg-auc-black/80 backdrop-blur-md" onclick="toggleModal()"></div>
+    
+    <div class="relative glass max-w-md w-full rounded-[2.5rem] p-10 neon-border-purple shadow-2xl scale-100 transition-transform">
+        <h3 class="text-3xl font-bold mb-2">Place a Bid</h3>
+        <p class="text-gray-400 text-sm mb-8 font-mono">// LOT: CYBERPUNK_RETIREMENT</p>
+
+        <div class="space-y-6">
+            <div class="relative">
+                <label class="text-[10px] uppercase tracking-widest text-solana-purple font-bold mb-2 block">Your Offer (SOL)</label>
+                <input type="number" id="bidInput" placeholder="0.00" 
+                       class="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-3xl font-bold focus:outline-none focus:border-solana-purple transition-all">
+                <div class="absolute right-6 top-[3.2rem] text-gray-500 font-mono text-sm">≈ $<span id="usdValue">0.00</span></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 py-4 border-y border-white/5">
+                <div>
+                    <p class="text-[10px] text-gray-500 uppercase">Min. Next Bid</p>
+                    <p class="font-bold">65.00 SOL</p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-500 uppercase">Your Balance</p>
+                    <p class="font-bold text-solana-green">142.8 SOL</p>
+                </div>
+            </div>
+
+            <button onclick="confirmBid()" class="w-full bg-solana-purple py-5 rounded-2xl font-bold text-xl shadow-glow-purple hover:scale-[1.02] transition-all">
+                CONFIRM TRANSACTION
+            </button>
+            <p class="text-[9px] text-center text-gray-600 uppercase tracking-tighter">Network fees will be calculated by Phantom/Solflare</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. Toggle Modal Visibility
+    function toggleModal() {
+        const modal = document.getElementById('bidModal');
+        modal.classList.toggle('hidden');
+    }
+
+    // 2. Real-time USD Conversion (Mock Price: 1 SOL = $145)
+    const solPrice = 145.20;
+    const bidInput = document.getElementById('bidInput');
+    const usdDisplay = document.getElementById('usdValue');
+
+    bidInput.addEventListener('input', (e) => {
+        const value = e.target.value;
+        usdDisplay.innerText = (value * solPrice).toLocaleString(undefined, {minimumFractionDigits: 2});
+    });
+
+    // 3. Mock Transaction Confirmation
+    function confirmBid() {
+        const bid = bidInput.value;
+        if(bid < 65) {
+            alert("Bid must be at least 65 SOL");
+            return;
+        }
+        alert(`Requesting signature for ${bid} SOL...`);
+        // Here we would eventually link the Solana Wallet Adapter
+    }
+
+    // Connect the "PLACE BID" button in the main UI
+    document.querySelector('main button').setAttribute('onclick', 'toggleModal()');
+</script>
         <footer class="mt-12 py-8 flex flex-col md:flex-row justify-between items-center border-t border-white/5 text-[10px] font-mono text-gray-600 tracking-widest uppercase">
             <p>System Status: Operational</p>
             <p>© 2026 AUCFI_CORE_TERMINAL</p>
