@@ -199,23 +199,20 @@
        ========================================== */
 
     async function updateMarketData() {
-        const start = Date.now();
-        try {
-            // Updated to fetch from YOUR backend for consistency
-            const res = await fetch(`${API_BASE_URL}/api/price`);
-            const data = await res.json();
-            
-            if($('#liveSolDisplay')) {
-                $('#liveSolDisplay').innerText = data.usd.toLocaleString(undefined, {minimumFractionDigits: 2});
-            }
-            if($('#latency')) {
-                $('#latency').innerText = Date.now() - start;
-            }
-        } catch(e) { 
-            if($('#liveSolDisplay')) $('#liveSolDisplay').innerText = "OFFLINE"; 
-        }
+    const start = Date.now();
+    try {
+        // Now pointing to YOUR backend
+        const res = await fetch(`${API_BASE_URL}/api/price`);
+        const data = await res.json();
+        
+        // CoinGecko returns { usd: 123.45 } through our proxy
+        $('#liveSolDisplay').innerText = data.usd.toLocaleString();
+        $('#latency').innerText = Date.now() - start;
+    } catch(e) { 
+        $('#liveSolDisplay').innerText = "OFFLINE"; 
+        console.error("Backend price fetch failed:", e);
     }
-
+}
     // --- Routing ---
     document.addEventListener('click', e => {
       const el = e.target.closest('[data-route]');
