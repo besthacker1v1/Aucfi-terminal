@@ -152,11 +152,70 @@
       <p>Latency: <span id="latency" class="text-solana-purple">---</span>ms</p>
     </footer>
   </main>
-
-  <script>
+<script>
     const $ = s => document.querySelector(s);
     const $$ = s => Array.from(document.querySelectorAll(s));
+
+    /* ==========================================
+       STEP 2: BACKEND CONFIG & BID LOGIC
+       ========================================== */
     
+    // Change this to your Render URL after you deploy
+    const API_BASE_URL = 'http://localhost:3000'; 
+
+    async function confirmBid() {
+        const bidValue = $('#bidInput').value;
+        const walletAddress = "8x...2W"; // Placeholder for connected wallet
+
+        if(!bidValue || bidValue < 65) return alert("Minimum bid is 65 SOL");
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/validate-bid`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    walletAddress: walletAddress, 
+                    bidAmountSol: parseFloat(bidValue) 
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(`✅ SUCCESS: ${result.message}`);
+                // In a real app, this is where you'd trigger the Phantom wallet sign-off
+                if(typeof toggleModal === 'function') toggleModal();
+            } else {
+                alert(`❌ FAILED: ${result.message}`);
+            }
+        } catch (err) {
+            console.error("Connection Error:", err);
+            alert("Backend Offline. Make sure your Node server is running on port 3000.");
+        }
+    }
+
+    /* ==========================================
+       STEP 3: MARKET DATA & UI ENGINE
+       ========================================== */
+
+    async function updateMarketData() {
+        const start = Date.now();
+        try {
+            // Updated to fetch from YOUR backend for consistency
+            const res = await fetch(`${API_BASE_URL}/api/price`);
+            const data = await res.json();
+            
+            if($('#liveSolDisplay')) {
+                $('#liveSolDisplay').innerText = data.usd.toLocaleString(undefined, {minimumFractionDigits: 2});
+            }
+            if($('#latency')) {
+                $('#latency').innerText = Date.now() - start;
+            }
+        } catch(e) { 
+            if($('#liveSolDisplay')) $('#liveSolDisplay').innerText = "OFFLINE"; 
+        }
+    }
+
     // --- Routing ---
     document.addEventListener('click', e => {
       const el = e.target.closest('[data-route]');
@@ -168,32 +227,18 @@
         $$('.section-page').forEach(p => p.classList.remove('active'));
         $('#home').classList.add('active');
       } else if (route === 'auth') {
-        // Simple auth check simulation
         const user = localStorage.getItem('aucfi_user');
         if(!user && targetHash !== 'home') {
             alert("Please Connect Wallet to access " + targetHash);
-            // In a real app, trigger wallet modal here
             localStorage.setItem('aucfi_user', '{"name":"Collector"}');
             location.reload();
         } else {
             $$('.section-page').forEach(p => p.classList.remove('active'));
-            $(`#${targetHash}`).classList.add('active');
+            const target = $(`#${targetHash}`);
+            if(target) target.classList.add('active');
         }
       }
     });
-
-    // --- Market Data ---
-    async function updateMarketData() {
-        const start = Date.now();
-        try {
-            const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
-            const data = await res.json();
-            $('#liveSolDisplay').innerText = data.solana.usd.toLocaleString();
-            $('#latency').innerText = Date.now() - start;
-        } catch(e) { $('#liveSolDisplay').innerText = "OFFLINE"; }
-    }
-    setInterval(updateMarketData, 20000);
-    updateMarketData();
 
     // --- Dynamic Lot Injection ---
     const demoLots = [
@@ -205,9 +250,9 @@
     function renderLots() {
         const container = $('#homeLots');
         const tableBody = $('#liveRows');
+        if(!container || !tableBody) return;
         
         demoLots.forEach(lot => {
-            // Grid Cards
             container.innerHTML += `
                 <div class="glass rounded-[2rem] overflow-hidden group hover:neon-border-purple transition-all">
                     <div class="h-48 overflow-hidden">
@@ -217,11 +262,10 @@
                         <p class="text-[10px] font-mono text-solana-purple mb-1">${lot.id}</p>
                         <h4 class="font-bold mb-2">${lot.title}</h4>
                         <p class="text-xs text-gray-500 mb-4">${lot.est}</p>
-                        <button class="w-full bg-white/5 py-2 rounded-xl text-xs font-bold hover:bg-solana-purple transition-colors">PLACE BID</button>
+                        <button onclick="confirmBid()" class="w-full bg-white/5 py-2 rounded-xl text-xs font-bold hover:bg-solana-purple transition-colors">PLACE BID</button>
                     </div>
                 </div>
             `;
-            // Table Rows
             tableBody.innerHTML += `
                 <tr class="group hover:bg-white/5">
                     <td class="py-4 font-bold text-solana-purple">${lot.id}</td>
@@ -233,17 +277,26 @@
         });
     }
 
-    // Initialize
+    /* ==========================================
+       BOOT LOGIC
+       ========================================== */
     const user = JSON.parse(localStorage.getItem('aucfi_user'));
     if(user) {
-        $('#authCta').classList.add('hidden');
-        $('#profileChip').classList.remove('hidden');
-        $('#profileChip').classList.add('flex');
+        if($('#authCta')) $('#authCta').classList.add('hidden');
+        if($('#profileChip')) {
+            $('#profileChip').classList.remove('hidden');
+            $('#profileChip').classList.add('flex');
+        }
     }
     
-    $('#signOutBtn').onclick = () => { localStorage.removeItem('aucfi_user'); location.reload(); };
+    if($('#signOutBtn')) {
+        $('#signOutBtn').onclick = () => { localStorage.removeItem('aucfi_user'); location.reload(); };
+    }
 
     renderLots();
-  </script>
+    updateMarketData();
+    setInterval(updateMarketData, 20000); // Sync every 20s
+</script>
+
 </body>
 </html>
