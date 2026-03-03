@@ -1,250 +1,249 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AUCFI | Solana Auction Terminal</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUCFI | Decentralized Luxury Auction Terminal</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
 
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        'auc-black': '#0b0e14',
-                        'solana-purple': '#9945FF',
-                        'solana-green': '#14F195',
-                    },
-                    fontFamily: {
-                        'sans': ['Space Grotesk', 'sans-serif'],
-                        'mono': ['JetBrains Mono', 'monospace'],
-                    },
-                    boxShadow: {
-                        'glow-purple': '0 0 20px rgba(153, 69, 255, 0.2)',
-                        'glow-green': '0 0 20px rgba(20, 241, 149, 0.2)',
-                    }
-                }
-            }
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'auc-black': '#0b0e14',
+            'solana-purple': '#9945FF',
+            'solana-green': '#14F195',
+            'gold': '#d4af37'
+          },
+          fontFamily: {
+            'sans': ['Space Grotesk', 'sans-serif'],
+            'mono': ['JetBrains Mono', 'monospace'],
+          }
         }
-    </script>
+      }
+    }
+  </script>
 
-    <style type="text/tailwindcss">
-        @layer base {
-            body { @apply bg-auc-black text-white antialiased; }
-        }
-        @layer utilities {
-            .glass { @apply backdrop-blur-xl bg-white/5 border border-white/10; }
-            .neon-border-purple { border: 1px solid rgba(153, 69, 255, 0.3); }
-            .neon-border-green { border: 1px solid rgba(20, 241, 149, 0.3); }
-            .mesh-bg {
-                background-image: radial-gradient(at 0% 0%, rgba(153, 69, 255, 0.15) 0, transparent 50%),
-                                  radial-gradient(at 100% 100%, rgba(20, 241, 149, 0.1) 0, transparent 50%);
-            }
-        }
-        @keyframes logo-float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-3px); }
-        }
-        .animate-logo { animation: logo-float 3s ease-in-out infinite; }
-    </style>
+  <style type="text/tailwindcss">
+    @layer base {
+      body { @apply bg-auc-black text-white antialiased font-sans; }
+      .section-page { display: none; }
+      .section-page.active { display: block; }
+    }
+    @layer utilities {
+      .glass { @apply backdrop-blur-xl bg-white/5 border border-white/10; }
+      .mesh-bg {
+        background-image: radial-gradient(at 0% 0%, rgba(153, 69, 255, 0.15) 0, transparent 50%),
+                          radial-gradient(at 100% 100%, rgba(20, 241, 149, 0.1) 0, transparent 50%);
+      }
+      .neon-border-purple { border: 1px solid rgba(153, 69, 255, 0.3); }
+    }
+    @keyframes logo-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+    .animate-logo { animation: logo-float 3s ease-in-out infinite; }
+  </style>
 </head>
 <body class="mesh-bg min-h-screen">
 
-    <nav class="fixed top-0 w-full z-50 glass border-b border-white/5 px-6 py-4">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-3 group cursor-pointer" onclick="window.location.reload()">
-                <div class="relative w-10 h-10 flex items-center justify-center animate-logo">
-                    <div class="absolute inset-0 bg-solana-purple/20 blur-lg group-hover:bg-solana-green/20 transition-all"></div>
-                    <svg viewBox="0 0 100 100" class="w-full h-full relative z-10 drop-shadow-[0_0_8px_rgba(153,69,255,0.8)]">
-                        <path d="M50 20 L75 35 L75 65 L50 80 L25 65 L25 35 Z" fill="none" stroke="url(#aucGradient)" stroke-width="4" class="animate-pulse"/>
-                        <line x1="30" y1="70" x2="70" y2="30" stroke="white" stroke-width="8" stroke-linecap="round"/>
-                        <defs>
-                            <linearGradient id="aucGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#9945FF" />
-                                <stop offset="100%" style="stop-color:#14F195" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                </div>
-                <span class="text-2xl font-black tracking-tighter uppercase">
-                    AUC<span class="text-solana-purple group-hover:text-solana-green transition-colors font-light">FI</span>
-                </span>
-            </div>
-            
-            <div class="hidden md:flex gap-8 font-mono text-xs uppercase tracking-widest text-gray-400">
-                <a href="#" class="hover:text-solana-green transition-all italic">/Auctions</a>
-                <a href="#" class="hover:text-solana-green transition-all">/Staking</a>
-                <a href="#" class="hover:text-solana-green transition-all">/Market</a>
-            </div>
-
-            <button class="glass px-6 py-2 rounded-full font-bold text-sm hover:bg-white/10 transition-all neon-border-purple">
-                Connect Wallet
-            </button>
+  <nav class="fixed top-0 w-full z-50 glass border-b border-white/5 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-3 group cursor-pointer" data-route="home">
+        <div class="relative w-10 h-10 flex items-center justify-center animate-logo">
+          <div class="absolute inset-0 bg-solana-purple/20 blur-lg group-hover:bg-solana-green/20 transition-all"></div>
+          <svg viewBox="0 0 100 100" class="w-full h-full relative z-10 drop-shadow-[0_0_8px_rgba(153,69,255,0.8)]">
+            <path d="M50 20 L75 35 L75 65 L50 80 L25 65 L25 35 Z" fill="none" stroke="url(#aucGradient)" stroke-width="4" />
+            <line x1="30" y1="70" x2="70" y2="30" stroke="white" stroke-width="8" stroke-linecap="round"/>
+            <defs>
+              <linearGradient id="aucGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#9945FF" />
+                <stop offset="100%" style="stop-color:#14F195" />
+              </linearGradient>
+            </defs>
+          </svg>
         </div>
-    </nav>
+        <span class="text-2xl font-black tracking-tighter uppercase">AUC<span class="text-solana-purple font-light">FI</span></span>
+      </div>
 
-    <main class="pt-32 px-6 max-w-7xl mx-auto">
-        <div class="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 h-auto md:h-[600px]">
-            <div class="md:col-span-2 md:row-span-2 glass rounded-[2rem] p-8 flex flex-col justify-end relative overflow-hidden group">
-                <div class="absolute top-8 right-8 bg-solana-green/20 text-solana-green px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest animate-pulse border border-solana-green/30">Live Now</div>
-                <div class="absolute inset-0 bg-gradient-to-t from-auc-black via-transparent to-transparent z-10"></div>
-                <div class="absolute inset-0 bg-gradient-to-br from-solana-purple/20 to-transparent opacity-50"></div>
-                
-                <div class="relative z-20">
-                    <p class="font-mono text-solana-purple text-sm mb-2">// GENESIS_DROP_01</p>
-                    <h2 class="text-5xl font-bold leading-tight mb-4">CYBERPUNK <br>RETIREMENT</h2>
-                    <div class="flex gap-8">
-                        <div>
-                            <p class="text-[10px] text-gray-500 uppercase font-mono">Current High Bid</p>
-                            <p class="text-2xl font-bold">64.20 <span class="text-solana-purple">SOL</span></p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] text-gray-500 uppercase font-mono">Ending In</p>
-                            <p class="text-2xl font-bold italic">04:22:15</p>
-                        </div>
-                    </div>
-                    <button onclick="toggleModal()" class="mt-8 w-full bg-solana-purple py-4 rounded-2xl font-bold shadow-glow-purple hover:scale-[1.02] transition-transform">PLACE BID</button>
-                </div>
-            </div>
+      <div class="hidden md:flex gap-6 font-mono text-[10px] uppercase tracking-widest text-gray-400">
+        <a href="#home" data-route="home" class="hover:text-solana-green transition-all">/Home</a>
+        <a href="#live" data-route="auth" class="hover:text-solana-green transition-all">/Live_Auctions</a>
+        <a href="#private" data-route="auth" class="hover:text-solana-green transition-all">/Private_Sales</a>
+        <a href="#vip" data-route="auth" class="hover:text-solana-green transition-all">/VIP_Access</a>
+      </div>
 
-            <div class="md:col-span-2 glass rounded-[2rem] p-6 flex flex-col justify-between neon-border-green group hover:bg-solana-green/5 transition-all">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h3 class="font-bold text-xl">Staking Hub</h3>
-                        <p class="text-xs text-gray-400">Lock $AUC for Fee Rebates</p>
-                    </div>
-                    <span class="text-solana-green font-mono text-xl">12.5% APY</span>
-                </div>
-                <div class="mt-4">
-                    <div class="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                        <div class="bg-solana-green h-full w-2/3 shadow-glow-green"></div>
-                    </div>
-                </div>
-                <button class="mt-4 text-xs font-mono text-solana-green text-center uppercase tracking-widest hover:underline">Manage Stake -></button>
-            </div>
-
-            <div class="glass rounded-[2rem] p-6 overflow-hidden">
-                <h3 class="text-[10px] font-mono text-gray-500 uppercase mb-4 tracking-[0.3em]">Network_Feed</h3>
-                <div class="space-y-4 font-mono text-[11px]">
-                    <div class="flex justify-between items-center text-gray-400">
-                        <span>8x...2W</span>
-                        <span class="text-solana-green">+5.0 SOL</span>
-                    </div>
-                    <div class="flex justify-between items-center text-gray-300">
-                        <span>3m...9L</span>
-                        <span class="text-white">Active</span>
-                    </div>
-                    <div class="flex justify-between items-center text-gray-400">
-                        <span>Az...11P</span>
-                        <span class="text-solana-purple">Staked</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="glass rounded-[2rem] p-6 bg-gradient-to-br from-transparent to-solana-purple/10 border-solana-purple/20">
-                <h3 class="text-[10px] font-mono text-gray-500 uppercase mb-4">Market_Stats</h3>
-                <p class="text-xs text-gray-400 mb-1">Live SOL Price</p>
-                <p class="text-2xl font-bold mb-4 italic">$<span id="liveSolDisplay">---.--</span></p>
-                <div class="flex items-center gap-2 text-[10px] text-solana-green font-mono">
-                    <span class="animate-ping inline-flex h-2 w-2 rounded-full bg-solana-green opacity-75"></span> Real-time Sync
-                </div>
-            </div>
+      <div class="flex items-center gap-4">
+        <div id="profileChip" class="hidden items-center gap-3 font-mono text-xs">
+          <span class="text-gray-400">ID: <span id="profileName" class="text-solana-green">Collector</span></span>
+          <button id="signOutBtn" class="text-red-400 hover:text-red-300"> [LOGOUT] </button>
         </div>
-
-        <footer class="mt-12 py-8 flex flex-col md:flex-row justify-between items-center border-t border-white/5 text-[10px] font-mono text-gray-600 tracking-widest uppercase">
-            <p>System Status: Operational</p>
-            <p>© 2026 AUCFI_CORE_TERMINAL</p>
-            <p>Latency: <span id="latency">---</span>ms</p>
-        </footer>
-    </main>
-
-    <div id="bidModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-6">
-        <div class="absolute inset-0 bg-auc-black/90 backdrop-blur-md" onclick="toggleModal()"></div>
-        <div class="relative glass max-w-md w-full rounded-[2.5rem] p-10 neon-border-purple shadow-2xl transition-all">
-            <h3 class="text-3xl font-bold mb-2">Place a Bid</h3>
-            <p class="text-gray-400 text-sm mb-8 font-mono">// LOT: CYBERPUNK_RETIREMENT</p>
-
-            <div class="space-y-6">
-                <div class="relative">
-                    <label class="text-[10px] uppercase tracking-widest text-solana-purple font-bold mb-2 block">Your Offer (SOL)</label>
-                    <input type="number" id="bidInput" placeholder="0.00" class="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-3xl font-bold focus:outline-none focus:border-solana-purple transition-all">
-                    <div class="absolute right-6 top-[3.2rem] text-gray-500 font-mono text-sm">≈ $<span id="usdValue">0.00</span></div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 py-4 border-y border-white/5">
-                    <div>
-                        <p class="text-[10px] text-gray-500 uppercase">Min. Next Bid</p>
-                        <p class="font-bold">65.00 SOL</p>
-                    </div>
-                    <div>
-                        <p class="text-[10px] text-gray-500 uppercase">Your Balance</p>
-                        <p class="font-bold text-solana-green">142.8 SOL</p>
-                    </div>
-                </div>
-
-                <button onclick="confirmBid()" class="w-full bg-solana-purple py-5 rounded-2xl font-bold text-xl shadow-glow-purple hover:scale-[1.02] transition-all">
-                    CONFIRM TRANSACTION
-                </button>
-            </div>
-        </div>
+        <button id="authCta" data-route="auth" class="glass px-6 py-2 rounded-full font-bold text-sm hover:bg-white/10 transition-all neon-border-purple">
+          Connect Wallet
+        </button>
+      </div>
     </div>
+  </nav>
 
-    <script>
-        // --- REAL-TIME DATA ENGINE ---
-        let currentSolPrice = 0;
+  <main class="pt-32 px-6 max-w-7xl mx-auto">
+    
+    <section id="home" class="section-page active">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="md:col-span-2 glass rounded-[2rem] p-8 relative overflow-hidden min-h-[400px] flex flex-col justify-end">
+          <div class="absolute top-8 right-8 bg-solana-green/20 text-solana-green px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-solana-green/30">Protocol Active</div>
+          <div class="relative z-10">
+            <h1 class="text-5xl font-bold leading-tight mb-4">BID SMART.<br><span class="text-solana-purple">PAY EASY.</span></h1>
+            <p class="text-gray-400 mb-6 max-w-md italic">The premier decentralized terminal for luxury assets. Secure escrow, verified provenance, and real-time Solana settlements.</p>
+            <div class="flex gap-4">
+                <button data-route="auth" href="#live" class="bg-solana-purple px-8 py-3 rounded-xl font-bold hover:scale-105 transition-transform">Explore Lots</button>
+                <button data-route="auth" href="#sell" class="glass px-8 py-3 rounded-xl font-bold hover:bg-white/10">Consign</button>
+            </div>
+          </div>
+        </div>
 
-        async function updateMarketData() {
-            const startTime = Date.now();
-            try {
-                // Fetch from CoinGecko
-                const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
-                const data = await response.json();
-                currentSolPrice = data.solana.usd;
-                
-                // Update UI
-                document.getElementById('liveSolDisplay').innerText = currentSolPrice.toLocaleString(undefined, {minimumFractionDigits: 2});
-                document.getElementById('latency').innerText = Date.now() - startTime;
-                
-                // Update Modal calculation if open
-                updateUsdCalculation();
-            } catch (e) {
-                console.error("API Error:", e);
-                document.getElementById('liveSolDisplay').innerText = "Offline";
-            }
+        <div class="glass rounded-[2rem] p-6 flex flex-col justify-between">
+            <div>
+                <h3 class="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-4">Market_Stats</h3>
+                <p class="text-xs text-gray-400">Live SOL Price</p>
+                <p class="text-3xl font-bold italic text-solana-green">$<span id="liveSolDisplay">---.--</span></p>
+            </div>
+            <div class="space-y-4 mt-8">
+                <div class="p-3 bg-white/5 rounded-xl border border-white/5">
+                    <p class="text-[10px] text-gray-500 uppercase">Avg Hammer</p>
+                    <p class="font-bold font-mono">$42.3k <span class="text-solana-green text-[10px]">+6.4%</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass rounded-[2rem] p-6">
+            <h3 class="text-[10px] font-mono text-gray-500 uppercase mb-4 tracking-widest">Live_Network_Feed</h3>
+            <div id="networkFeed" class="space-y-4 font-mono text-[11px]">
+                <div class="flex justify-between text-gray-400"><span>0x...4F</span><span class="text-solana-purple">BID ON L-5711</span></div>
+                <div class="flex justify-between text-gray-400"><span>0x...9A</span><span class="text-solana-green">SETTLED L-DAYT</span></div>
+            </div>
+        </div>
+      </div>
+
+      <h2 class="text-xl font-bold mt-12 mb-6 font-mono">// FEATURED_ASSETS</h2>
+      <div id="homeLots" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        </div>
+    </section>
+
+    <section id="live" class="section-page glass rounded-[2rem] p-8">
+        <h2 class="text-3xl font-bold mb-6 italic">Live Auctions</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left font-mono text-sm">
+                <thead class="text-gray-500 border-b border-white/10">
+                    <tr><th class="pb-4">LOT_ID</th><th class="pb-4">ESTIMATE</th><th class="pb-4">STATUS</th><th class="pb-4">ACTION</th></tr>
+                </thead>
+                <tbody id="liveRows" class="divide-y divide-white/5">
+                    </tbody>
+            </table>
+        </div>
+    </section>
+
+    <footer class="mt-12 py-8 flex flex-col md:flex-row justify-between items-center border-t border-white/5 text-[10px] font-mono text-gray-600 tracking-widest uppercase">
+      <p>System Status: <span class="text-solana-green">Operational</span></p>
+      <p>© 2026 AUCFI_CORE_TERMINAL</p>
+      <p>Latency: <span id="latency" class="text-solana-purple">---</span>ms</p>
+    </footer>
+  </main>
+
+  <script>
+    const $ = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+    
+    // --- Routing ---
+    document.addEventListener('click', e => {
+      const el = e.target.closest('[data-route]');
+      if(!el) return;
+      const route = el.getAttribute('data-route');
+      const targetHash = (el.getAttribute('href') || '#home').replace('#','');
+
+      if(route === 'home') {
+        $$('.section-page').forEach(p => p.classList.remove('active'));
+        $('#home').classList.add('active');
+      } else if (route === 'auth') {
+        // Simple auth check simulation
+        const user = localStorage.getItem('aucfi_user');
+        if(!user && targetHash !== 'home') {
+            alert("Please Connect Wallet to access " + targetHash);
+            // In a real app, trigger wallet modal here
+            localStorage.setItem('aucfi_user', '{"name":"Collector"}');
+            location.reload();
+        } else {
+            $$('.section-page').forEach(p => p.classList.remove('active'));
+            $(`#${targetHash}`).classList.add('active');
         }
+      }
+    });
 
-        // --- UI LOGIC ---
-        function toggleModal() {
-            document.getElementById('bidModal').classList.toggle('hidden');
-        }
+    // --- Market Data ---
+    async function updateMarketData() {
+        const start = Date.now();
+        try {
+            const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+            const data = await res.json();
+            $('#liveSolDisplay').innerText = data.solana.usd.toLocaleString();
+            $('#latency').innerText = Date.now() - start;
+        } catch(e) { $('#liveSolDisplay').innerText = "OFFLINE"; }
+    }
+    setInterval(updateMarketData, 20000);
+    updateMarketData();
 
-        function updateUsdCalculation() {
-            const val = document.getElementById('bidInput').value;
-            const display = document.getElementById('usdValue');
-            if(val && currentSolPrice) {
-                display.innerText = (val * currentSolPrice).toLocaleString(undefined, {minimumFractionDigits: 2});
-            } else {
-                display.innerText = "0.00";
-            }
-        }
+    // --- Dynamic Lot Injection ---
+    const demoLots = [
+        { id: 'L-5711', title: 'Patek Nautilus 5711', est: '$80k - $120k', img: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?q=80&w=600' },
+        { id: 'L-DAYT', title: 'Rolex Daytona 6263', est: '$150k - $220k', img: 'https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?q=80&w=600' },
+        { id: 'L-APRO', title: 'AP Royal Oak 15202', est: '$120k - $180k', img: 'https://images.unsplash.com/photo-1548171915-0d2f62b6881a?q=80&w=600' }
+    ];
 
-        document.getElementById('bidInput').addEventListener('input', updateUsdCalculation);
+    function renderLots() {
+        const container = $('#homeLots');
+        const tableBody = $('#liveRows');
+        
+        demoLots.forEach(lot => {
+            // Grid Cards
+            container.innerHTML += `
+                <div class="glass rounded-[2rem] overflow-hidden group hover:neon-border-purple transition-all">
+                    <div class="h-48 overflow-hidden">
+                        <img src="${lot.img}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    </div>
+                    <div class="p-6">
+                        <p class="text-[10px] font-mono text-solana-purple mb-1">${lot.id}</p>
+                        <h4 class="font-bold mb-2">${lot.title}</h4>
+                        <p class="text-xs text-gray-500 mb-4">${lot.est}</p>
+                        <button class="w-full bg-white/5 py-2 rounded-xl text-xs font-bold hover:bg-solana-purple transition-colors">PLACE BID</button>
+                    </div>
+                </div>
+            `;
+            // Table Rows
+            tableBody.innerHTML += `
+                <tr class="group hover:bg-white/5">
+                    <td class="py-4 font-bold text-solana-purple">${lot.id}</td>
+                    <td class="py-4 text-gray-400">${lot.est}</td>
+                    <td class="py-4"><span class="text-solana-green">● LIVE</span></td>
+                    <td class="py-4"><button class="text-xs border border-white/20 px-4 py-1 rounded-full hover:bg-white/10">VIEW</button></td>
+                </tr>
+            `;
+        });
+    }
 
-        async function confirmBid() {
-            const bid = document.getElementById('bidInput').value;
-            if(!bid || bid < 65) return alert("Minimum bid is 65 SOL");
+    // Initialize
+    const user = JSON.parse(localStorage.getItem('aucfi_user'));
+    if(user) {
+        $('#authCta').classList.add('hidden');
+        $('#profileChip').classList.remove('hidden');
+        $('#profileChip').classList.add('flex');
+    }
+    
+    $('#signOutBtn').onclick = () => { localStorage.removeItem('aucfi_user'); location.reload(); };
 
-            // BACKEND PREP: We'll send this to our Node server next
-            console.log("Preparing bid for backend:", { amount: bid, currency: 'SOL' });
-            alert(`Broadcasting ${bid} SOL bid to network...`);
-        }
-
-        // Boot
-        updateMarketData();
-        setInterval(updateMarketData, 20000); // Sync every 20s
-    </script>
+    renderLots();
+  </script>
 </body>
 </html>
