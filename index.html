@@ -156,32 +156,64 @@
     const $ = s => document.querySelector(s);
     const $$ = s => Array.from(document.querySelectorAll(s));
 
-    // Change this to your Render URL after you deploy
+    // Update this to your live Render URL once deployed
     const API_BASE_URL = 'http://localhost:3000'; 
 
     /* ==========================================
-       STEP 1: DYNAMIC BIDDING LOGIC
+       STEP 1: REAL PHANTOM WALLET CONNECTION
+       ========================================== */
+    async function connectWallet() {
+        try {
+            if (!window.solana || !window.solana.isPhantom) {
+                return alert("Please install Phantom Wallet to bid!");
+            }
+
+            // Connect to Phantom
+            const resp = await window.solana.connect();
+            const walletAddr = resp.publicKey.toString();
+
+            // Save to LocalStorage
+            const userData = { 
+                role: "bidder", 
+                wallet: walletAddr,
+                name: "Adeshina" 
+            };
+            localStorage.setItem('aucfi_user', JSON.stringify(userData));
+            
+            alert(`✅ Connected: ${walletAddr.substring(0, 4)}...${walletAddr.substring(38)}`);
+            location.reload();
+        } catch (err) {
+            console.error("Wallet connection failed", err);
+            alert("Connection Cancelled");
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('aucfi_user');
+        alert("Wallet Disconnected");
+        location.reload();
+    }
+
+    /* ==========================================
+       STEP 2: DYNAMIC BIDDING LOGIC
        ========================================== */
     async function confirmBid(lotTitle = "Unknown Item") {
         const user = JSON.parse(localStorage.getItem('aucfi_user'));
         
-        // 1. Check if user is logged in as a Bidder
         if (!user || user.role !== 'bidder') {
-            return alert("âŒ ACCESS DENIED: You are logged in as a Collector. Please connect as a Bidder to place bids.");
+            return alert("❌ ACCESS DENIED: Please connect your Phantom Wallet to bid.");
         }
 
-        const bidValue = $('#bidInput') ? $('#bidInput').value : 65; // Fallback to min bid if no input found
-        
-        // 2. Use a REAL Devnet/Mainnet address for testing the "Heavy" library
-        // Replace this with your actual Phantom wallet address
-        const walletAddress = user.wallet || "7phi7Z7XjY8G4kX6Kx3pU1y6nB5S9Z9Z9Z9Z9Z9Z9Z9Z"; 
+        // Get value from input; default to 65 if not found
+        const bidInput = $('#bidInput');
+        const bidValue = bidInput ? bidInput.value : 65; 
 
         try {
             const response = await fetch(`${API_BASE_URL}/api/validate-bid`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    walletAddress: walletAddress, 
+                    walletAddress: user.wallet, // Use REAL connected wallet
                     bidAmountSol: parseFloat(bidValue),
                     item: lotTitle
                 })
@@ -190,46 +222,41 @@
             const result = await response.json();
 
             if (result.success) {
-                alert(`âœ… BACKEND VERIFIED: ${result.message}`);
-                // UI update
+                alert(`🚀 BACKEND VERIFIED: ${result.message}`);
                 if($('#rvAmount')) $('#rvAmount').innerText = bidValue;
             } else {
-                alert(`âŒ BID REJECTED: ${result.message}`);
+                alert(`⚠️ BID REJECTED: ${result.message}`);
             }
         } catch (err) {
-            console.error("Backend Connection Error:", err);
-            alert("Backend Offline. Ensure your terminal says '⚡ AUC-FI BLOCKEND: ACTIVE'");
+            console.error("Connection Error:", err);
+            alert("Backend Offline. Start your server on the Chromebook terminal!");
         }
     }
 
     /* ==========================================
-       STEP 2: MARKET DATA (With 429 Protection)
+       STEP 3: MARKET DATA (429 Protected)
        ========================================== */
     async function updateMarketData() {
         const start = Date.now();
         try {
             const res = await fetch(`${API_BASE_URL}/api/price`);
-            if (res.status === 429) throw new Error("Rate Limited");
+            if (res.status === 429) throw new Error("Limited");
             
             const data = await res.json();
-            
-            // Handle both data formats (Direct vs Proxy)
             const price = data.usd || (data.solana ? data.solana.usd : null);
             
             if (price) {
                 $('#liveSolDisplay').innerText = price.toLocaleString();
-                $('#liveSolDisplay').classList.remove('text-red-500');
             }
             $('#latency').innerText = Date.now() - start;
         } catch(e) { 
             $('#liveSolDisplay').innerText = "LIMIT REACHED"; 
-            $('#liveSolDisplay').classList.add('text-red-500');
-            console.warn("CoinGecko is rate-limiting. Backend is using fallback.");
+            console.warn("API throttled. Backend using fallback.");
         }
     }
 
     /* ==========================================
-       STEP 3: AUTH & ROUTING (The Collector Fix)
+       STEP 4: AUTH & UI ROUTING
        ========================================== */
     document.addEventListener('click', e => {
       const el = e.target.closest('[data-route]');
@@ -240,14 +267,8 @@
       if(el.getAttribute('data-route') === 'auth') {
         const user = localStorage.getItem('aucfi_user');
         if(!user) {
-            // Updated to allow role selection
-            const role = confirm("Click 'OK' to connect as BIDDER (Requires SOL)\nClick 'Cancel' to browse as COLLECTOR (View Only)") 
-                         ? { name: "Adeshina", role: "bidder", wallet: "8x...2W" } 
-                         : { name: "Guest", role: "collector" };
-            
-            localStorage.setItem('aucfi_user', JSON.stringify(role));
-            alert(`Connected as ${role.role.toUpperCase()}`);
-            location.reload();
+            // Trigger Real Web3 Connection
+            connectWallet();
         } else {
             $$('.section-page').forEach(p => p.classList.remove('active'));
             const target = $(`#${targetHash}`);
@@ -257,7 +278,7 @@
     });
 
     /* ==========================================
-       STEP 4: DYNAMIC LOT INJECTION
+       STEP 5: DYNAMIC LOT INJECTION
        ========================================== */
     const demoLots = [
         { id: 'L-5711', title: 'Patek Nautilus 5711', est: '65 - 100 SOL', img: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?q=80&w=600' },
@@ -268,7 +289,7 @@
         const container = $('#homeLots');
         if(!container) return;
         
-        container.innerHTML = ''; // Clear existing
+        container.innerHTML = ''; 
         demoLots.forEach(lot => {
             container.innerHTML += `
                 <div class="glass rounded-[2rem] overflow-hidden group hover:neon-border-purple transition-all">
@@ -286,19 +307,29 @@
         });
     }
 
-    // --- BOOT ---
+    /* ==========================================
+       STEP 6: BOOT LOGIC (Profile & Logout)
+       ========================================== */
     const activeUser = JSON.parse(localStorage.getItem('aucfi_user'));
     if(activeUser) {
         if($('#authCta')) $('#authCta').classList.add('hidden');
-        if($('#profileChip')) {
-            $('#profileChip').classList.remove('hidden');
-            $('#profileChip').innerText = activeUser.role.toUpperCase();
+        
+        const profileChip = $('#profileChip');
+        if(profileChip) {
+            profileChip.classList.remove('hidden');
+            profileChip.innerHTML = `
+                <div class="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/10">
+                    <span class="text-[10px] font-bold text-solana-green">● BIDDER</span>
+                    <span class="text-[10px] text-gray-400">${activeUser.wallet.substring(0,4)}...${activeUser.wallet.substring(38)}</span>
+                    <button onclick="logout()" class="text-[9px] hover:text-red-400 font-bold ml-2">LOGOUT</button>
+                </div>
+            `;
         }
     }
 
     renderLots();
     updateMarketData();
-    setInterval(updateMarketData, 30000); // 30s interval to prevent 429
+    setInterval(updateMarketData, 30000); 
 </script>
 
 </body>
