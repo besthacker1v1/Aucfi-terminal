@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AUCFI | Solana Auction Terminal</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'auc-black': '#0b0e14',
+                        'solana-purple': '#9945FF',
+                        'solana-green': '#14F195',
+                    },
+                    fontFamily: {
+                        'sans': ['Space Grotesk', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'glow-purple': '0 0 20px rgba(153, 69, 255, 0.2)',
+                        'glow-green': '0 0 20px rgba(20, 241, 149, 0.2)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer base {
+            body { @apply bg-auc-black text-white antialiased; }
+        }
+        @layer utilities {
+            .glass { @apply backdrop-blur-xl bg-white/5 border border-white/10; }
+            .neon-border-purple { border: 1px solid rgba(153, 69, 255, 0.3); }
+            .neon-border-green { border: 1px solid rgba(20, 241, 149, 0.3); }
+            .mesh-bg {
+                background-image: radial-gradient(at 0% 0%, rgba(153, 69, 255, 0.15) 0, transparent 50%),
+                                  radial-gradient(at 100% 100%, rgba(20, 241, 149, 0.1) 0, transparent 50%);
+            }
+        }
+    </style>
+</head>
+<body class="mesh-bg min-h-screen">
+
+    <nav class="fixed top-0 w-full z-50 glass border-b border-white/5 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-gradient-to-br from-solana-purple to-solana-green rounded-lg shadow-glow-purple"></div>
+                <span class="text-2xl font-bold tracking-tighter">AUC<span class="text-solana-purple">FI</span></span>
+            </div>
+            
+            <div class="hidden md:flex gap-8 font-mono text-xs uppercase tracking-widest text-gray-400">
+                <a href="#" class="hover:text-solana-green transition-all italic">/Auctions</a>
+                <a href="#" class="hover:text-solana-green transition-all">/Staking</a>
+                <a href="#" class="hover:text-solana-green transition-all">/Market</a>
+            </div>
+
+            <button class="glass px-6 py-2 rounded-full font-bold text-sm hover:bg-white/10 transition-all neon-border-purple">
+                Connect Wallet
+            </button>
+        </div>
+    </nav>
+
+    <main class="pt-32 px-6 max-w-7xl mx-auto">
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 h-auto md:h-[600px]">
+            
+            <div class="md:col-span-2 md:row-span-2 glass rounded-[2rem] p-8 flex flex-col justify-end relative overflow-hidden group">
+                <div class="absolute top-8 right-8 bg-solana-green/20 text-solana-green px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest animate-pulse border border-solana-green/30">Live Now</div>
+                
+                <div class="absolute inset-0 bg-gradient-to-t from-auc-black via-transparent to-transparent z-10"></div>
+                <div class="absolute inset-0 bg-gradient-to-br from-solana-purple/20 to-transparent opacity-50"></div>
+                
+                <div class="relative z-20">
+                    <p class="font-mono text-solana-purple text-sm mb-2">// GENESIS_DROP_01</p>
+                    <h2 class="text-5xl font-bold leading-tight mb-4">CYBERPUNK <br>RETIREMENT</h2>
+                    <div class="flex gap-8">
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase font-mono">Current High Bid</p>
+                            <p class="text-2xl font-bold">64.20 <span class="text-solana-purple">SOL</span></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase font-mono">Ending In</p>
+                            <p class="text-2xl font-bold italic">04:22:15</p>
+                        </div>
+                    </div>
+                    <button class="mt-8 w-full bg-solana-purple py-4 rounded-2xl font-bold shadow-glow-purple hover:scale-[1.02] transition-transform">PLACE BID</button>
+                </div>
+            </div>
+
+            <div class="md:col-span-2 glass rounded-[2rem] p-6 flex flex-col justify-between neon-border-green group hover:bg-solana-green/5 transition-all">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="font-bold text-xl">Staking Hub</h3>
+                        <p class="text-xs text-gray-400">Lock $AUC for Fee Rebates</p>
+                    </div>
+                    <span class="text-solana-green font-mono text-xl">12.5% APY</span>
+                </div>
+                <div class="mt-4">
+                    <div class="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                        <div class="bg-solana-green h-full w-2/3 shadow-glow-green"></div>
+                    </div>
+                </div>
+                <button class="mt-4 text-xs font-mono text-solana-green text-center uppercase tracking-widest hover:underline">Manage Stake -></button>
+            </div>
+
+            <div class="glass rounded-[2rem] p-6 overflow-hidden">
+                <h3 class="text-[10px] font-mono text-gray-500 uppercase mb-4 tracking-[0.3em]">Network_Feed</h3>
+                <div class="space-y-4 font-mono text-[11px]">
+                    <div class="flex justify-between items-center text-gray-400">
+                        <span>8x...2W</span>
+                        <span class="text-solana-green">+5.0 SOL</span>
+                    </div>
+                    <div class="flex justify-between items-center text-gray-300">
+                        <span>3m...9L</span>
+                        <span class="text-white">Active</span>
+                    </div>
+                    <div class="flex justify-between items-center text-gray-400">
+                        <span>Az...11P</span>
+                        <span class="text-solana-purple">Staked</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass rounded-[2rem] p-6 bg-gradient-to-br from-transparent to-solana-purple/10 border-solana-purple/20">
+                <h3 class="text-[10px] font-mono text-gray-500 uppercase mb-4">Market_Stats</h3>
+                <p class="text-xs text-gray-400 mb-1">Total Volume (24h)</p>
+                <p class="text-2xl font-bold mb-4 italic">12.4M <span class="text-xs text-solana-purple">USD</span></p>
+                <div class="flex items-center gap-2 text-[10px] text-solana-green font-mono">
+                    <span class="animate-bounce">↑</span> 4.2% Growth
+                </div>
+            </div>
+
+        </div>
+
+        <footer class="mt-12 py-8 flex flex-col md:flex-row justify-between items-center border-t border-white/5 text-[10px] font-mono text-gray-600 tracking-widest uppercase">
+            <p>System Status: Operational</p>
+            <p>© 2026 AUCFI_CORE_TERMINAL</p>
+            <p>Latency: 382ms</p>
+        </footer>
+    </main>
+
+</body>
+</html>
