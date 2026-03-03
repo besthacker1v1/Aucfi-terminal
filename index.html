@@ -47,6 +47,29 @@
       50% { transform: translateY(-3px); }
     }
     .animate-logo { animation: logo-float 3s ease-in-out infinite; }
+    #toast-box {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+.toast-msg {
+    background: rgba(153, 50, 255, 0.9); /* Solana Purple */
+    color: white;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: bold;
+    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 0 20px rgba(153, 50, 255, 0.4);
+    margin-top: 10px;
+    animation: popUp 0.4s ease-out forwards;
+}
+@keyframes popUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
   </style>
 </head>
 <body class="mesh-bg min-h-screen">
@@ -326,6 +349,25 @@
             `;
         }
     }
+
+  function showToast(text) {
+    let box = $('#toast-box');
+    if(!box) {
+        document.body.insertAdjacentHTML('beforeend', '<div id="toast-box"></div>');
+        box = $('#toast-box');
+    }
+    const id = Date.now();
+    const html = `<div id="t-${id}" class="toast-msg">${text}</div>`;
+    box.insertAdjacentHTML('beforeend', html);
+    
+    // Auto-destruct
+    setTimeout(() => {
+        const el = document.getElementById(`t-${id}`);
+        if(el) el.remove();
+    }, 3500);
+}
+
+// NOW REPLACE: alert("Success") WITH showToast("🚀 Bid Placed Successfully!")
 
     renderLots();
     updateMarketData();
