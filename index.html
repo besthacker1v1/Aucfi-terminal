@@ -431,55 +431,81 @@ async function renderLots() {
     const container = $('#homeLots');
     if(!container) return;
     
+    let lotsToDisplay = demoLots; // Default to your hardcoded list
+
     try {
-        // 1. Fetch live data from your Render/Local backend
         const response = await fetch(`${API_BASE_URL}/api/auctions`);
-        const liveLots = await response.json();
-
-        container.innerHTML = ''; 
-        
-        // 2. Loop through the data SENT by the backend
-        liveLots.forEach(lot => {
-            container.innerHTML += `
-                <div class="glass rounded-[2rem] overflow-hidden group hover:neon-border-purple transition-all">
-                    <div class="h-48 overflow-hidden relative">
-                        <img src="${lot.img}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
-                        <div class="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-[10px] font-mono">
-                            ${lot.est}
-                        </div>
-                    </div>
-                    
-                    <div class="p-6">
-                        <p class="text-[10px] font-mono text-solana-purple mb-1">${lot.id}</p>
-                        <h4 class="font-bold mb-4">${lot.title}</h4>
-                        
-                        <div class="mb-4 space-y-2">
-                            <label class="text-[9px] uppercase tracking-widest text-gray-500 font-mono">Your Offer</label>
-                            <div class="relative">
-                                <input id="input-${lot.id}" type="number" value="${lot.minBid || 65}" min="${lot.minBid || 65}" step="0.5"
-                                       class="w-full bg-white/5 border border-white/10 p-3 rounded-xl text-xs font-mono focus:border-solana-purple outline-none transition-all pr-20">
-                                
-                                <button onclick="setMaxBid('${lot.id}')" 
-                                        class="absolute right-12 top-1/2 -translate-y-1/2 text-[9px] bg-solana-purple/20 hover:bg-solana-purple/40 text-solana-purple px-2 py-1 rounded md font-bold transition-all">
-                                    MAX
-                                </button>
-                                
-                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-500">SOL</span>
-                            </div>
-                        </div>
-
-                        <button onclick="confirmBid('${lot.id}', '${lot.title}')" 
-                                class="w-full bg-solana-purple/10 border border-solana-purple/30 py-3 rounded-xl text-xs font-bold hover:bg-solana-purple hover:text-white transition-all duration-300">
-                            PLACE BID
-                        </button>
-                    </div>
-                </div>`;
-        });
+        if (response.ok) {
+            lotsToDisplay = await response.json();
+        }
     } catch (err) {
-        console.error("Failed to load auctions:", err);
-        showToast("Backend connection error", "error");
+        console.warn("Backend offline, showing demo lots instead.");
+    }
+
+    container.innerHTML = ''; 
+    lotsToDisplay.forEach(lot => {
+        container.innerHTML += `
+            <div class="glass rounded-[2rem] overflow-hidden group hover:neon-border-purple transition-all">
+                <div class="h-48 overflow-hidden relative">
+                    <img src="${lot.img}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    <div class="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-[10px] font-mono">
+                        ${lot.est}
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <p class="text-[10px] font-mono text-solana-purple mb-1">${lot.id}</p>
+                    <h4 class="font-bold mb-4">${lot.title}</h4>
+                    
+                    <div class="mb-4 space-y-2">
+                        <label class="text-[9px] uppercase tracking-widest text-gray-500 font-mono">Your Offer</label>
+                        <div class="relative">
+                            <input id="input-${lot.id}" type="number" value="${lot.minBid || 65}" min="${lot.minBid || 65}" step="0.5"
+                                   class="w-full bg-white/5 border border-white/10 p-3 rounded-xl text-xs font-mono focus:border-solana-purple outline-none transition-all pr-20">
+                            
+                            <button onclick="setMaxBid('${lot.id}')" 
+                                    class="absolute right-12 top-1/2 -translate-y-1/2 text-[9px] bg-solana-purple/20 hover:bg-solana-purple/40 text-solana-purple px-2 py-1 rounded md font-bold transition-all">
+                                MAX
+                            </button>
+                            
+                            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-500">SOL</span>
+                        </div>
+                    </div>
+
+                    <button onclick="confirmBid('${lot.id}', '${lot.title}')" 
+                            class="w-full bg-solana-purple/10 border border-solana-purple/30 py-3 rounded-xl text-xs font-bold hover:bg-solana-purple hover:text-white transition-all duration-300">
+                        PLACE BID
+                    </button>
+                </div>
+            </div>`;
+    });
+}
+/* ==========================================
+   BOOT LOGIC: PERSISTENT LOGIN
+   ========================================== */
+function initAuth() {
+    const activeUser = JSON.parse(localStorage.getItem('aucfi_user'));
+    if(activeUser) {
+        // Hide the "Connect Wallet" button
+        if($('#authCta')) $('#authCta').classList.add('hidden');
+        
+        // Show the Profile Chip
+        const chip = $('#profileChip');
+        if(chip) {
+            chip.classList.remove('hidden');
+            chip.innerHTML = `
+                <div class="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/10">
+                    <span class="text-[10px] font-bold text-solana-green">● BIDDER</span>
+                    <span class="text-[10px] text-gray-400 font-mono">${activeUser.wallet.substring(0,4)}...${activeUser.wallet.substring(activeUser.wallet.length - 4)}</span>
+                    <button id="signOutBtn" class="text-[9px] hover:text-red-400 font-bold ml-2">[LOGOUT]</button>
+                </div>`;
+            $('#signOutBtn').onclick = logout;
+        }
     }
 }
+
+// Update your final calls at the bottom:
+    initAuth();
     renderLots();
     updateMarketData();
     setInterval(updateMarketData, 30000); 
