@@ -208,10 +208,11 @@ button:disabled {
     const $ = s => document.querySelector(s);
     const $$ = s => Array.from(document.querySelectorAll(s));
 
-    const API_BASE_URL = 'http://localhost:3000'; 
+    // UPDATE: Your Live Render URL
+    const API_BASE_URL = 'https://aucfi.onrender.com'; 
 
     /* ==========================================
-       UTILITY: CUSTOM TOAST (Defined early to avoid errors)
+       UTILITY: CUSTOM TOAST
        ========================================== */
     function showToast(text, type = 'success') {
         let box = $('#toast-box');
@@ -222,7 +223,6 @@ button:disabled {
         const id = Date.now();
         const isError = type === 'error' ? 'error' : '';
         const html = `<div id="t-${id}" class="toast-msg ${isError}">${text}</div>`;
-
         box.insertAdjacentHTML('beforeend', html);
         
         setTimeout(() => {
@@ -236,7 +236,29 @@ button:disabled {
     }
 
     /* ==========================================
-       STEP 1: PHANTOM WALLET
+       SERVER STATUS HEARTBEAT
+       ========================================== */
+    async function checkServerStatus() {
+        const light = $('#statusLight');
+        const text = $('#statusText');
+        if(!light || !text) return;
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/auctions`);
+            if (res.ok) {
+                light.className = "w-2 h-2 rounded-full bg-solana-green";
+                text.innerText = "Online";
+                text.className = "text-solana-green uppercase";
+            }
+        } catch (err) {
+            light.className = "w-2 h-2 rounded-full bg-red-500";
+            text.innerText = "Wakeup Required";
+            text.className = "text-red-500 uppercase";
+        }
+    }
+
+    /* ==========================================
+       WALLET & AUTH
        ========================================== */
     async function connectWallet() {
         try {
@@ -246,14 +268,10 @@ button:disabled {
             const resp = await window.solana.connect();
             const walletAddr = resp.publicKey.toString();
 
-            const userData = { 
-                role: "bidder", 
-                wallet: walletAddr,
-                name: "Adeshina" 
-            };
+            const userData = { role: "bidder", wallet: walletAddr };
             localStorage.setItem('aucfi_user', JSON.stringify(userData));
             
-            showToast(`✅ Connected: ${walletAddr.substring(0, 4)}...`);
+            showToast(`✅ Wallet Connected`);
             setTimeout(() => location.reload(), 1000);
         } catch (err) {
             showToast("Connection Cancelled", "error");
@@ -262,308 +280,161 @@ button:disabled {
 
     function logout() {
         localStorage.removeItem('aucfi_user');
-        showToast("Wallet Disconnected");
+        showToast("Disconnected");
         setTimeout(() => location.reload(), 800);
     }
 
     /* ==========================================
-       STEP 2: BIDDING LOGIC (Cleaned & Single Version)
+       BIDDING CORE
        ========================================== */
-async function confirmBid(lotId, lotTitle) {
-    const user = JSON.parse(localStorage.getItem('aucfi_user'));
-    
-    if (!user || user.role !== 'bidder') {
-        return showToast("❌ Connect Wallet to Bid", "error");
+    let pendingBid = null;
+
+    function openTxModal(lotId, lotTitle, bidValue) {
+        $('#modalItem').innerText = lotTitle;
+        $('#modalAmount').innerText = bidValue;
+        $('#txModal').classList.remove('hidden');
+        pendingBid = { lotId, lotTitle, bidValue };
     }
 
-    // 1. Locate the specific input for this lot
-    const bidInput = $(`#input-${lotId}`);
-    const bidValue = bidInput ? bidInput.value : 65;
-
-    // 2. Local Validation
-    if (!bidValue || bidValue < 65) {
-        return showToast("⚠️ Minimum bid is 65 SOL", "error");
+    function closeTxModal() {
+        $('#txModal').classList.add('hidden');
+        pendingBid = null;
     }
 
-    // 3. Instead of fetching, we open the Modal
-    openTxModal(lotId, lotTitle, bidValue);
-}
+    async function confirmBid(lotId, lotTitle) {
+        const user = JSON.parse(localStorage.getItem('aucfi_user'));
+        if (!user) return connectWallet();
 
-let pendingBid = null; // Stores the bid data while the modal is open
+        const bidInput = $(`#input-${lotId}`);
+        const bidValue = bidInput ? bidInput.value : 65;
 
-function openTxModal(lotId, lotTitle, bidValue) {
-    // Fill the Modal UI with the data
-    $('#modalItem').innerText = lotTitle;
-    $('#modalAmount').innerText = bidValue;
-    
-    // Show the modal element
-    $('#txModal').classList.remove('hidden');
-    
-    // Save the data so the "Final Confirm" button knows what to send
-    pendingBid = { lotId, lotTitle, bidValue };
-}
-
-function closeTxModal() {
-    $('#txModal').classList.add('hidden');
-    pendingBid = null;
-}
-
-async function executeFinalBid() {
-    if (!pendingBid) return;
-    
-    const user = JSON.parse(localStorage.getItem('aucfi_user'));
-    const confirmBtn = $('#finalConfirmBtn'); // The button inside the modal
-    const originalText = confirmBtn.innerHTML;
-
-    // Start Loading State inside the Modal
-    confirmBtn.disabled = true;
-    confirmBtn.innerHTML = `<span class="spinner"></span> PROCESSING...`;
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/validate-bid`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                walletAddress: user.wallet, 
-                bidAmountSol: parseFloat(pendingBid.bidValue),
-                item: pendingBid.lotTitle
-            })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showToast(`🚀 ${result.message}`);
-            closeTxModal(); // Close on success
-
-            launchSuccessAnimation();
-
-        } else {
-            showToast(`⚠️ ${result.message}`, "error");
-        }
-    } catch (err) {
-        showToast("Connection Error", "error");
-    } finally {
-        confirmBtn.disabled = false;
-        confirmBtn.innerHTML = originalText;
+        if (bidValue < 65) return showToast("⚠️ Min bid 65 SOL", "error");
+        openTxModal(lotId, lotTitle, bidValue);
     }
-}
 
-async function setMaxBid(lotId) {
-    const user = JSON.parse(localStorage.getItem('aucfi_user'));
-    if (!user || !user.wallet) return showToast("Connect Wallet first!", "error");
+    async function executeFinalBid() {
+        if (!pendingBid) return;
+        const user = JSON.parse(localStorage.getItem('aucfi_user'));
+        const btn = $('#finalConfirmBtn');
+        const originalText = btn.innerHTML;
 
-    const inputField = $(`#input-${lotId}`);
-    
-    try {
-        // We use your existing price/balance logic from the backend
-        const response = await fetch(`${API_BASE_URL}/api/validate-bid`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                walletAddress: user.wallet, 
-                bidAmountSol: 0.001 // We send a tiny amount just to trigger the balance check
-            })
-        });
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner"></span> PROCESSING...`;
 
-        const result = await response.json();
-        
-        // If your backend returns the balance in the error or success message
-        // Example: "Insufficient funds. Balance is 120.5 SOL"
-        const balanceMatch = result.message.match(/(\d+\.\d+|\d+)/);
-        
-        if (balanceMatch) {
-            const balance = balanceMatch[0];
-            inputField.value = balance;
-            showToast(`💰 Max balance applied: ${balance} SOL`);
-        } else {
-            showToast("Could not retrieve balance", "error");
-        }
-    } catch (err) {
-        showToast("Backend connection error", "error");
-    }
-}
-    /* ==========================================
-       STEP 3: MARKET DATA
-       ========================================== */
-    async function updateMarketData() {
-        const start = Date.now();
         try {
-            const res = await fetch(`${API_BASE_URL}/api/price`);
-            const data = await res.json();
-            const price = data.usd || (data.solana ? data.solana.usd : null);
-            
-            if (price) {
-                $('#liveSolDisplay').innerText = price.toLocaleString();
+            const response = await fetch(`${API_BASE_URL}/api/validate-bid`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    walletAddress: user.wallet, 
+                    bidAmountSol: parseFloat(pendingBid.bidValue),
+                    item: pendingBid.lotTitle
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast(`🚀 ${result.message}`);
+                closeTxModal();
+                launchSuccessAnimation();
+            } else {
+                showToast(`⚠️ ${result.message}`, "error");
             }
-            $('#latency').innerText = Date.now() - start;
-        } catch(e) { 
-            $('#liveSolDisplay').innerText = "LIMIT REACHED"; 
+        } catch (err) {
+            showToast("Server timeout - waking up?", "error");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
         }
     }
 
     /* ==========================================
-       STEP 4: ROUTING & DYNAMIC CONTENT
+       DYNAMIC RENDERING
        ========================================== */
-    document.addEventListener('click', e => {
-        const el = e.target.closest('[data-route]');
-        if(!el) return;
-        
-        const route = el.getAttribute('data-route');
-        const targetHash = (el.getAttribute('href') || '#home').replace('#','');
-
-        if(route === 'auth' && !localStorage.getItem('aucfi_user')) {
-            connectWallet();
-        } else {
-            $$('.section-page').forEach(p => p.classList.remove('active'));
-            const target = $(`#${targetHash}`);
-            if(target) target.classList.add('active');
-        }
-    });
-
     const demoLots = [
         { id: 'L-5711', title: 'Patek Nautilus 5711', est: '65 - 100 SOL', img: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?q=80&w=600' },
         { id: 'L-DAYT', title: 'Rolex Daytona 6263', est: '150 - 200 SOL', img: 'https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?q=80&w=600' }
     ];
 
-// Change your function to be "async" so it can wait for the backend
-async function renderLots() {
-    const container = $('#homeLots');
-    if(!container) return;
-    
-    let lotsToDisplay = demoLots; // Default to your hardcoded list
+    async function renderLots() {
+        const container = $('#homeLots');
+        if(!container) return;
+        
+        let lots = demoLots;
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/auctions`);
+            if(res.ok) lots = await res.json();
+        } catch(e) { console.warn("Using fallback data"); }
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/auctions`);
-        if (response.ok) {
-            lotsToDisplay = await response.json();
-        }
-    } catch (err) {
-        console.warn("Backend offline, showing demo lots instead.");
-    }
-
-    container.innerHTML = ''; 
-    lotsToDisplay.forEach(lot => {
-        container.innerHTML += `
+        container.innerHTML = lots.map(lot => `
             <div class="glass rounded-[2rem] overflow-hidden group hover:neon-border-purple transition-all">
                 <div class="h-48 overflow-hidden relative">
                     <img src="${lot.img}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
-                    <div class="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-[10px] font-mono">
-                        ${lot.est}
-                    </div>
+                    <div class="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-[10px] font-mono">${lot.est}</div>
                 </div>
-                
                 <div class="p-6">
                     <p class="text-[10px] font-mono text-solana-purple mb-1">${lot.id}</p>
                     <h4 class="font-bold mb-4">${lot.title}</h4>
-                    
                     <div class="mb-4 space-y-2">
-                        <label class="text-[9px] uppercase tracking-widest text-gray-500 font-mono">Your Offer</label>
                         <div class="relative">
-                            <input id="input-${lot.id}" type="number" value="${lot.minBid || 65}" min="${lot.minBid || 65}" step="0.5"
-                                   class="w-full bg-white/5 border border-white/10 p-3 rounded-xl text-xs font-mono focus:border-solana-purple outline-none transition-all pr-20">
-                            
-                            <button onclick="setMaxBid('${lot.id}')" 
-                                    class="absolute right-12 top-1/2 -translate-y-1/2 text-[9px] bg-solana-purple/20 hover:bg-solana-purple/40 text-solana-purple px-2 py-1 rounded md font-bold transition-all">
-                                MAX
-                            </button>
-                            
+                            <input id="input-${lot.id}" type="number" value="65" class="w-full bg-white/5 border border-white/10 p-3 rounded-xl text-xs font-mono outline-none pr-20">
                             <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-500">SOL</span>
                         </div>
                     </div>
-
-                    <button onclick="confirmBid('${lot.id}', '${lot.title}')" 
-                            class="w-full bg-solana-purple/10 border border-solana-purple/30 py-3 rounded-xl text-xs font-bold hover:bg-solana-purple hover:text-white transition-all duration-300">
-                        PLACE BID
-                    </button>
+                    <button onclick="confirmBid('${lot.id}', '${lot.title}')" class="w-full bg-solana-purple/10 border border-solana-purple/30 py-3 rounded-xl text-xs font-bold hover:bg-solana-purple hover:text-white transition-all">PLACE BID</button>
                 </div>
-            </div>`;
-    });
-}
-/* ==========================================
-   BOOT LOGIC: PERSISTENT LOGIN
-   ========================================== */
-function initAuth() {
-    const activeUser = JSON.parse(localStorage.getItem('aucfi_user'));
-    if(activeUser) {
-        // Hide the "Connect Wallet" button
-        if($('#authCta')) $('#authCta').classList.add('hidden');
-        
-        // Show the Profile Chip
-        const chip = $('#profileChip');
-        if(chip) {
-            chip.classList.remove('hidden');
-            chip.innerHTML = `
-                <div class="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/10">
-                    <span class="text-[10px] font-bold text-solana-green">● BIDDER</span>
-                    <span class="text-[10px] text-gray-400 font-mono">${activeUser.wallet.substring(0,4)}...${activeUser.wallet.substring(activeUser.wallet.length - 4)}</span>
-                    <button id="signOutBtn" class="text-[9px] hover:text-red-400 font-bold ml-2">[LOGOUT]</button>
-                </div>`;
+            </div>`).join('');
+    }
+
+    /* ==========================================
+       INITIALIZATION
+       ========================================== */
+    function init() {
+        const user = JSON.parse(localStorage.getItem('aucfi_user'));
+        if(user) {
+            $('#authCta').classList.add('hidden');
+            $('#profileChip').classList.remove('hidden');
+            $('#profileName').innerText = user.wallet.substring(0,4) + '...';
             $('#signOutBtn').onclick = logout;
         }
+        $('#finalConfirmBtn').onclick = executeFinalBid;
+        
+        renderLots();
+        checkServerStatus();
+        setInterval(checkServerStatus, 30000);
     }
-}
 
-// Update your final calls at the bottom:
-    initAuth();
-    renderLots();
-    updateMarketData();
-    setInterval(updateMarketData, 30000); 
+    function launchSuccessAnimation() {
+        const end = Date.now() + 3000;
+        (function frame() {
+            confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#9945FF', '#14F195'] });
+            confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#9945FF', '#14F195'] });
+            if (Date.now() < end) requestAnimationFrame(frame);
+        }());
+    }
 
-    // Put this at the bottom of your <script>
-function launchSuccessAnimation() {
-    const duration = 3 * 1000;
-    const end = Date.now() + duration;
-
-    const frame = () => {
-        // Launch confetti from the left
-        confetti({
-            particleCount: 2,
-            angle: 60,
-            spread: 55,
-            origin: { x: 0 },
-            colors: ['#9945FF', '#14F195'] // Solana Purple & Green
-        });
-        // Launch confetti from the right
-        confetti({
-            particleCount: 2,
-            angle: 120,
-            spread: 55,
-            origin: { x: 1 },
-            colors: ['#9945FF', '#14F195']
-        });
-
-        if (Date.now() < end) {
-            requestAnimationFrame(frame);
-        }
-    };
-    frame();
-}
+    window.onload = init;
 </script>
+
 <div id="txModal" class="fixed inset-0 z-[10001] hidden flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-auc-black/80 backdrop-blur-md"></div>
-    <div class="glass relative max-w-sm w-full rounded-[2.5rem] p-8 border-solana-purple/30 animate-in fade-in zoom-in duration-300">
+    <div class="glass relative max-w-sm w-full rounded-[2.5rem] p-8 border-solana-purple/30">
         <h3 class="text-xl font-bold mb-2 italic">Confirm Bid</h3>
-        <p class="text-[10px] text-gray-500 font-mono mb-6 uppercase tracking-widest">Network: Solana Mainnet</p>
-        
+        <p class="text-[10px] text-gray-500 font-mono mb-6">SOLANA MAINNET_BETA</p>
         <div class="space-y-4 mb-8">
             <div class="flex justify-between border-b border-white/5 pb-2">
                 <span class="text-xs text-gray-400">Asset</span>
                 <span id="modalItem" class="text-xs font-bold">---</span>
             </div>
             <div class="flex justify-between border-b border-white/5 pb-2">
-                <span class="text-xs text-gray-400">Bid Amount</span>
-                <span class="text-xs font-bold text-solana-green"><span id="modalAmount">0.00</span> SOL</span>
-            </div>
-            <div class="flex justify-between">
-                <span class="text-xs text-gray-400">Est. Gas Fee</span>
-                <span class="text-[10px] font-mono text-gray-500">~0.000005 SOL</span>
+                <span class="text-xs text-gray-400">Bid</span>
+                <span class="text-xs font-bold text-solana-green"><span id="modalAmount">0</span> SOL</span>
             </div>
         </div>
-
         <div class="flex gap-3">
-            <button onclick="closeTxModal()" class="flex-1 py-3 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 transition-all">CANCEL</button>
-            <button id="finalConfirmBtn" class="flex-1 py-3 rounded-xl text-xs font-bold bg-solana-purple hover:shadow-[0_0_20px_rgba(153,69,255,0.4)] transition-all">CONFIRM</button>
+            <button onclick="closeTxModal()" class="flex-1 py-3 rounded-xl text-[10px] font-bold bg-white/5">CANCEL</button>
+            <button id="finalConfirmBtn" class="flex-1 py-3 rounded-xl text-[10px] font-bold bg-solana-purple">CONFIRM_BID</button>
         </div>
     </div>
 </div>
